@@ -3,7 +3,7 @@ use Mojo::Base 'Mojolicious';
 use DBD::SQLite;
 use DBI;
 
-has db_name => "db/agent";
+has db_name => "db/agent.db";
 # This method will run once at server start
 sub startup {
   my $self = shift;
