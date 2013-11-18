@@ -17,18 +17,22 @@ sub startup {
   my $r = $self->routes;
 
   # Normal route to controller
-  $r->get('/')->to('example#welcome');
+  #$r->get('/')->to('example#welcome');
 
   $r->get('/containers')->to('containers#list');
+  $r->get('/containers/:id')->to('containers#inspect');
 
   #specify a docker image
-  $r->post('/containers')->to('containers#start');
+  $r->post('/containers')->to('images#start');
   $r->delete('/containers/:id')->to('containers#stop');
 
-  #json says what to do to the container (peg cpu, fill disk, remove disk, fill ram, etc).
-  $r->post('/containers/:id/modify')->to('containers#modify');
+  #json has args
+  $r->post('/containers/:id/condition/:type/:subtype')->to('containers#add_condition');
+  $r->delete('/containers/:id/condition/:type/:subtype')->to('containers#remove_condition');
+
 
   $r->get('/images')->to('images#list');
+
   $r->post('/images')->to('images#create');
 
 }
