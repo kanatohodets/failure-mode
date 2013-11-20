@@ -20,8 +20,8 @@ CREATE TABLE IF NOT EXISTS condition_net_delay (
     distribution TEXT
 );
 
-CREATE TABLE IF NOT EXISTS condition_net_loss (
-    condition_net_less_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+CREATE TABLE IF NOT EXISTS condition_net_drop (
+    condition_net_drop_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     base REAL NOT NULL DEFAULT 0,
     correlation REAL
 );
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS condition_net_loss (
 CREATE TABLE IF NOT EXISTS container_condition (
     container_condition_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     container_id TEXT NOT NULL,
-    condition_type TEXT NOT NULL,
+    condition_type INTEGER NOT NULL,
     condition_id INTEGER NOT NULL,
     FOREIGN KEY(container_id) REFERENCES container(container_id)
 );

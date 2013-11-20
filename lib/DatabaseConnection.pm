@@ -7,7 +7,10 @@ use DBI;
 my $db_name = "db/agent.db";
 
 sub get {
-    state $dbh = DBI->connect("dbi:SQLite:dbname=$db_name", "", "");
+    state $dbh = DBI->connect("dbi:SQLite:dbname=$db_name", "", "", {
+        AutoCommit => 1,
+        PrintError => 1
+    });
 }
 
 

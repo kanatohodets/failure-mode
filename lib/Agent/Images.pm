@@ -1,5 +1,6 @@
 package Agent::Images;
 use Mojo::Base 'Mojolicious::Controller';
+use Mojo::JSON;
 use Agent::Containers::Container;
 use Data::Dumper qw(Dumper);
 
@@ -13,10 +14,17 @@ sub create_image {
 
 sub start {
     my $self = shift;
-    my $image_name = $self->param('image_name');
+    my $json = Mojo::JSON->new;
+    my $args = $json->decode($self->req->body);
+    my $image_name = $args->{image};
+    my $cpu = $args->{cpu_shares};
     my $container = Agent::Containers::Container->new();
-    my $container_id = $container->start($image_name);
-    $self->render(json => {container_id => $container_id}); 
+    my $container_id = $container->start($image_name, $cpu);
+    if ($container_id) {
+        $self->render(json => {container_id => $container_id, message => "OK"});
+    } else {
+        $self->render(json => {message => "failed to start"}, status => 500);
+    }
 }
 
 sub list {
