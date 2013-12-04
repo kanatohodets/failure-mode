@@ -27,6 +27,7 @@ sub disable_netem {
 sub disable_iptables {
     my $self = shift;
     my $container_pid = $self->container->true_pid;
+    #say "disabling IP tables for true_pid $container_pid";
     system("ip netns exec $container_pid iptables -F") if $self->iptables_is_active;
 }
 
@@ -41,7 +42,9 @@ sub iptables_is_active {
     my $self = shift;
     my $container_pid = $self->container->true_pid;
     my $output = `ip netns exec $container_pid iptables --list`;
-    return index($output, 'DROP') != -1 || index($output, 'REJECT') != -1;
+    my $active = index($output, 'DROP') != -1 || index($output, 'REJECT') != -1;
+    say "ip tables active?", $active;
+    return $active;
 }
 
 
