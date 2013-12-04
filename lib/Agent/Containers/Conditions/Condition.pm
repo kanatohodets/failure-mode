@@ -8,6 +8,8 @@ use constant {
     NET_DROP => 101,
     NET_IGNORE => 102,
     NET_THROTTLE => 103,
+    NET_REJECT => 104,
+    NET_IGNORE => 105,
     DISK_FILL => 200,
     MEM_FILL => 300,
     CPU_MAX => 400,

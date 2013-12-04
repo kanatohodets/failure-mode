@@ -9,6 +9,11 @@ sub new {
     return $self;
 }
 
+sub disable {
+    my $self = shift;
+    $self->SUPER::disable_netem();
+}
+
 sub prepare_command {
     my $self = shift;
     my $hashref = $self->get();

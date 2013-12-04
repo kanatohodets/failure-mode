@@ -6,6 +6,7 @@ use Data::Dumper qw(Dumper);
 use Agent::Containers::Conditions::Net::Drop;
 use Agent::Containers::Conditions::Net::Delay;
 use Agent::Containers::Conditions::Net::Ignore;
+use Agent::Containers::Conditions::Net::Reject;
 use Agent::Containers::Conditions::Net::Throttle;
 use Agent::Containers::Conditions::Disk::Fill;
 use Agent::Containers::Conditions::Mem::Fill;
@@ -29,8 +30,10 @@ has condition_names => sub {
         101 => ['net', 'drop'],
         102 => ['net', 'isolation'],
         103 => ['net', 'throttle'],
-        200 => ['disk', 'full'],
-        300 => ['memory', 'full'],
+        104 => ['net', 'reject'],
+        105 => ['net', 'ignore'],
+        200 => ['disk', 'fill'],
+        300 => ['memory', 'fill'],
         400 => ['cpu', 'max'],
     }
 };
@@ -71,6 +74,7 @@ sub add {
     my $type = shift;
     my $subtype = shift;
     my $args = shift;
+    #say Dumper($args);
     my $condition = $self->get_condition($type, $subtype, $args->{'args'});
     $condition->save;
     $self->conditions->{$type}->{$subtype} = $condition;
@@ -125,18 +129,29 @@ sub disable {
     $self->_disable_mem();
 }
 
-sub _disable_net {
+sub _disable_netem {
     my $self = shift;
     # net drop/delay share a device, so disabling one disables the other.
     # double disabling isn't a huge deal.
-    $self->conditions->{net}->{drop}->disable() if exists $self->conditions->{net}->{drop};
-    $self->conditions->{net}->{delay}->disable() if exists $self->conditions->{net}->{delay};
+    my $net_drop = $self->conditions->{net}->{drop};
+    my $net_delay = $self->conditions->{net}->{delay};
+    my $netem_net_condition = $net_drop // $net_delay;
+
+    $netem_net_condition->disable_netem() if defined $netem_net_condition;
+}
+
+sub _disable_iptables {
+    my $self = shift;
+    my $net_reject = $self->conditions->{net}->{reject};
+    my $net_ignore = $self->conditions->{net}->{ignore};
+    my $iptables_net_condition = $net_reject // $net_ignore;
+    $iptables_net_condition->disable_iptables() if defined $iptables_net_condition;
 }
 
 sub _enable_net {
     my $self = shift;
     $self->_enable_net_drop_delay();
-    $self->_enable_net_isolation();
+    $self->_enable_net_reject_ignore();
 }
 
 sub _enable_net_drop_delay {
@@ -144,8 +159,8 @@ sub _enable_net_drop_delay {
     my $net_drop = $self->conditions->{net}->{drop};
     my $net_delay = $self->conditions->{net}->{delay};
     my $net_condition = $net_drop // $net_delay;
-    say "I have a net condition?" if defined $net_condition;
-    say Dumper($net_condition);
+    #say "I have a net condition?" if defined $net_condition;
+    #say Dumper($net_condition);
     return if !defined $net_condition;
 
     my $drop_cmd = $net_drop->prepare_command if defined $net_drop;
@@ -163,10 +178,39 @@ sub _clear_net_drop_delay {
     my $self = shift;
     my $net_condition = $self->conditions->{net}->{drop} // $self->conditions->{net}->{delay};
     return if !defined $net_condition;
-    $net_condition->disable();
+    $net_condition->disable_netem();
 }
 
-sub _enable_net_isolation { }
+sub _clear_net_reject_ignore {
+    my $self = shift;
+    my $net_condition = $self->conditions->{net}->{reject} // $self->conditions->{net}->{ignore};
+    return if !defined $net_condition;
+    $net_condition->disable_iptables();
+}
+
+sub _enable_net_reject_ignore { 
+    my $self = shift;
+    my $net_reject = $self->conditions->{net}->{reject};
+    my $net_ignore = $self->conditions->{net}->{ignore};
+    my $net_condition = $net_reject // $net_ignore;
+    #say "I have a net condition?" if defined $net_condition;
+    #say Dumper($net_condition);
+    return if !defined $net_condition;
+
+    my $reject_cmd = $net_reject->prepare_command if defined $net_reject;
+    my $ignore_cmd = $net_ignore->prepare_command if defined $net_ignore;
+
+    $self->_clear_net_reject_ignore();
+    my $full_reject_cmd = '';
+    $full_reject_cmd = $net_condition->iptables_command_base . $reject_cmd if $reject_cmd;
+
+    my $full_ignore_cmd = '';
+    $full_ignore_cmd = $net_condition->iptables_command_base . $ignore_cmd if $ignore_cmd;
+    say "commands: ", $full_reject_cmd, $full_ignore_cmd;
+
+    system($full_reject_cmd) if $full_reject_cmd;
+    system($full_ignore_cmd) if $full_ignore_cmd;
+}
 
 sub _enable_disk { }
 sub _enable_cpu { }

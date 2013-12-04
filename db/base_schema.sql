@@ -26,6 +26,16 @@ CREATE TABLE IF NOT EXISTS condition_net_drop (
     correlation REAL
 );
 
+CREATE TABLE IF NOT EXISTS condition_net_reject (
+    condition_net_reject_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    target TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS condition_net_ignore (
+    condition_net_ignore_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    target TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS container_condition (
     container_condition_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     container_id TEXT NOT NULL,

@@ -17,9 +17,13 @@ sub start {
     my $json = Mojo::JSON->new;
     my $args = $json->decode($self->req->body);
     my $image_name = $args->{image};
+    my $container_name = $args->{name};
     my $cpu = $args->{cpu_shares};
+    my $link_source_name = $args->{link_source_name};
+    my $link_local_name = $args->{link_local_name};
+    my $port_to_forward = $args->{port_to_forward};
     my $container = Agent::Containers::Container->new();
-    my $container_id = $container->start($image_name, $cpu);
+    my $container_id = $container->start($image_name, $container_name, $cpu, $link_source_name, $link_local_name, $port_to_forward);
     if ($container_id) {
         $self->render(json => {container_id => $container_id, message => "OK"});
     } else {

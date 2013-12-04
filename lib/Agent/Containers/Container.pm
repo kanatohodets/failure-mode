@@ -4,7 +4,7 @@ use List::Util qw(first);
 use Agent::Containers::Conditions;
 
 use Mojo::UserAgent;
-use Mojo::IOLoop;
+use Mojo::IOLoop::ReadWriteFork;
 
 has namespace_path => '/sys/fs/cgroup/devices/lxc';
 has id => undef;
@@ -13,6 +13,7 @@ has conditions => sub { \1; };
 has true_pid => undef;
 has stream_id => undef;
 has stream => undef;
+has ua => sub { state $ua = Mojo::UserAgent->new };
 
 sub new {
     my $self = shift->SUPER::new(@_);
@@ -27,8 +28,20 @@ sub new {
 sub start {
     my $self = shift;
     my $image_name = shift;
-    my $cpu_shares = shift // 0;
-    my $container_id = `docker run -c=$cpu_shares -d $image_name`;
+    my $container_name = shift;
+    my $cpu_shares = shift // 1000;
+    my $link_source_name = shift // '';
+    my $link_local_name = shift // '';
+    my $port_to_forward = shift // '';
+    my $port_string = '';
+    $port_string = "-p $port_to_forward:$port_to_forward" if $port_to_forward;
+    say $port_string;
+
+    my $link_string = '';
+    $link_string = "-link $link_source_name:$link_local_name" if $link_source_name && $link_local_name;
+    say $link_string;
+
+    my $container_id = `docker run -c $cpu_shares -d $port_string $link_string -name $container_name $image_name`;
     if ($container_id) {
         $self->id($self->_get_full_id($container_id));
         $self->_init();
@@ -63,8 +76,7 @@ sub disable_conditions {
 
 sub _init {
     my $self = shift;
-    my $ua = Mojo::UserAgent->new;
-    $ua->inactivity_timeout(0);
+    $self->ua->inactivity_timeout(0);
     my $app_ip = '127.0.0.1:3008';
     my $id = $self->id;
     my $true_pid = $self->_create_netns();
@@ -76,28 +88,28 @@ sub _init {
     #my $stream_id = Mojo::IOLoop->stream($stream);
     #$self->stream_id($stream_id);
     #$self->stream($stream);
-    say "starting ua websocket";
-    $ua->websocket("ws://$app_ip" => sub {
-        my ($ua, $tx) = @_;
-        if (!$tx->is_websocket) {
-            warn 'WebSocket handshake failed!';
-            #Mojo::IOLoop->remove($stream_id);
-            return;
-        }
-
-        $tx->on(finish => sub {
-            my ($tx, $code, $reason) = @_;
-        });
-
-        $tx->on(message => sub { 1; });
-
-        #$stream->on(read => sub {
-        #    my ($stream, $bytes) = @_;
-        #    say "tshark: ", $bytes;
-        #    $tx->send($bytes);
-        #});
-    });
-    say "finished ua websocket thingy";
+    #say "starting ua websocket";
+    #$self->ua->websocket("ws://$app_ip" => sub {
+    #    my ($ua, $tx) = @_;
+    #    if (!$tx->is_websocket) {
+    #        warn 'WebSocket handshake failed!';
+    #        #Mojo::IOLoop->remove($stream_id);
+    #        #return;
+    #    }
+    #
+    #    $tx->on(finish => sub {
+    #        my ($tx, $code, $reason) = @_;
+    #    });
+    #
+    #    $tx->on(message => sub { 1; });
+    #
+    #    $stream->on(read => sub {
+    #        my ($stream, $bytes) = @_;
+    #        say "tshark: ", $bytes;
+    #    #    $tx->send($bytes);
+    #    });
+    #});
+    #say "finished ua websocket thingy";
 }
 
 sub stop {
@@ -105,6 +117,7 @@ sub stop {
     my $container_id = $self->id;
     Mojo::IOLoop->remove($self->stream_id) if $self->stream_id;
     system("docker stop $container_id");
+    system("docker rm $container_id");
     $self->_unregister();
 }
 
