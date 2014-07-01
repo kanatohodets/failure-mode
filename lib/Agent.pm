@@ -13,8 +13,20 @@ sub startup {
         state $db = DBI->connect("dbi:SQLite:dbname=$db_name");
     });
 
+    $self->hook(before_dispatch => sub {
+        my $c = shift;
+        $c->res->headers->header('Access-Control-Allow-Origin' => '*');
+        $c->res->headers->header('Access-Control-Allow-Methods' => 'GET,OPTIONS,PUT,POST,DELETE');
+        $c->res->headers->header('Access-Control-Allow-Headers' => 'X-Requested-With, X-Access-Token, X-Revision, Content-Type');
+    });
+
     # Router
     my $r = $self->routes;
+
+    $r->options('*')->to(cb => sub {
+        my $self = shift;
+        $self->render(text => 'ok');
+    });
 
     # Normal route to controller
 
