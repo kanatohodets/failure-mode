@@ -40,8 +40,8 @@ Adding/listing images
     GET /images
 
 ### Containers
-Note: all <container id>s may be shortened to anything unambiguous. 3-5
-characters usually does it.
+Note: any `<container id>` may be shortened to anything unambiguous, just like
+when using the docker client.
 
 See running containers:
 
