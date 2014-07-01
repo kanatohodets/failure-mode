@@ -71,6 +71,11 @@ sub remove_condition {
     $self->conditions->remove($type, $subtype);
 }
 
+sub remove_all_conditions {
+    my $self = shift;
+    $self->conditions->remove_all;
+}
+
 sub enable_conditions {
     my $self = shift;
     $self->conditions->enable();

@@ -89,6 +89,17 @@ sub remove {
     $self->enable();
 }
 
+sub remove_all {
+    my $self = shift;
+    my $container_id = $self->container->id;
+    my $sth = $self->db->prepare("
+        DELETE FROM container_condition WHERE container_id = ?
+    ");
+    $sth->execute($container_id);
+    $self->disable();
+    $self->conditions({});
+}
+
 sub get_condition {
     my $self = shift;
     my ($type, $subtype) = (ucfirst(lc(shift)), ucfirst(lc(shift)));
@@ -127,6 +138,12 @@ sub disable {
     $self->_disable_disk();
     $self->_disable_cpu();
     $self->_disable_mem();
+}
+
+sub _disable_net {
+    my $self = shift;
+    $self->_disable_netem;
+    $self->_disable_iptables;
 }
 
 sub _disable_netem {
@@ -215,5 +232,10 @@ sub _enable_net_reject_ignore {
 sub _enable_disk { }
 sub _enable_cpu { }
 sub _enable_mem { }
+
+sub _disable_disk { }
+sub _disable_cpu { }
+sub _disable_mem { }
+
 
 1;

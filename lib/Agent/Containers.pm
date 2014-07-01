@@ -57,6 +57,18 @@ sub remove_condition {
     }
 }
 
+sub remove_conditions {
+    my $self = shift;
+    my $container_id = $self->stash('id');
+    my $container = $self->_get_container_object($container_id);
+    if ($container) {
+        $container->remove_all_conditions();
+        $self->render(json => {message => "OK"});
+    } else {
+        $self->render(json => {message => "no such container"}, status => 404);
+    }
+}
+
 sub inspect {
     my $self = shift;
     my $json = Mojo::JSON->new;
