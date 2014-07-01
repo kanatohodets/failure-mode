@@ -7,6 +7,7 @@ has db_name => "db/agent.db";
 # This method will run once at server start
 sub startup {
     my $self = shift;
+    $self->config(hypnotoad => {listen => ['http://*:3005']});
 
     $self->helper(db => sub {
         my $db_name = $self->db_name;
