@@ -31,6 +31,18 @@ sub add_condition {
     }
 }
 
+sub list_conditions {
+    my $self = shift;
+    my $container_id = $self->stash('id');
+    my $container = $self->_get_container_object($container_id);
+    if ($container) {
+        my $conditions = $container->list_conditions;
+        $self->render(json => $conditions);
+    } else {
+        $self->render(json => {message => "no such container"}, status => 404);
+    }
+}
+
 sub remove_condition {
     my $self = shift;
     my $container_id = $self->stash('id');

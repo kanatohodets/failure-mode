@@ -50,6 +50,13 @@ sub start {
     return;
 }
 
+sub list_conditions {
+    my $self = shift;
+    my $conditions = $self->conditions->get_all;
+    # above is a hashref, we're just interested in the values for JSON-ification
+    { conditions => [values %$conditions]};
+}
+
 sub add_condition {
     my $self = shift;
     my ($type, $subtype) = (shift, shift);
