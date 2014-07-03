@@ -73,7 +73,7 @@ sub inspect {
     my $self = shift;
     my $json = Mojo::JSON->new;
     my $container_id = $self->stash('id');
-    my $details = `docker inspect $container_id`;
+    my $details = $self->_paranoid_inspect($container_id);
     $details = $json->decode($details);
     $self->render(json => $details);
 }
@@ -107,16 +107,16 @@ sub list {
 sub _get_container_object {
     my $self = shift;
     my $container_id = shift;
-    $container_id .= "%";
-    my $sth = $self->db->prepare("
-        SELECT * from container WHERE container_id LIKE ?
-    ");
-    $sth->execute($container_id);
-    my $result = $sth->fetchrow_hashref();
-    if ($result) {
-        $result->{id} = $result->{container_id};
-        return Agent::Containers::Container->new($result);
-    }
+    my $output = $self->_paranoid_inspect($id);
+    return '' if $output =~ /No such image or container/ or !$output;
+    return Agent::Containers::Container->new($container_id);
+}
+
+sub _paranoid_inspect {
+    my $id = shift;
+    my $only_hex_id = $id =~ /^[0-9a-f]*$/;
+    return `docker inspect $id` if $only_hex_id;
+    return '';
 }
 
 1;
