@@ -168,11 +168,14 @@ sub _create_netns {
     my $self = shift;
     my $container_id = $self->id;
     my $true_pid = $self->_get_true_pid($container_id);
-    chomp($true_pid);
-    system('mkdir -p /var/run/netns');
-    system("rm /var/run/netns/$true_pid") if -e "/var/run/netns/$true_pid";
-    system("ln -s /proc/$true_pid/ns/net /var/run/netns/$true_pid");
-    return $true_pid;
+    if ($true_pid) {
+        system('mkdir -p /var/run/netns');
+        system("rm /var/run/netns/$true_pid") if -e "/var/run/netns/$true_pid";
+        system("ln -s /proc/$true_pid/ns/net /var/run/netns/$true_pid");
+        return $true_pid;
+    } else {
+        return '';
+    }
 }
 
 sub _remove_netns {
@@ -185,7 +188,8 @@ sub _get_true_pid {
     my $self = shift;
     my $container_id = $self->id;
     my $namespace = $self->namespace_path . '/' . $container_id;
-    open my $tasks_fh, '<', "$namespace/tasks" or warn "ARGH ARGH NO FILE TO OPEN";
+    open my $tasks_fh, '<', "$namespace/tasks"
+        or warn "bad lxc namespace: could not open tasks to find true_pid!" && return '';
     my $true_pid = <$tasks_fh>;
     close $tasks_fh;
     chomp($true_pid);
