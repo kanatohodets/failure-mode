@@ -1,7 +1,7 @@
 package Agent::Containers::Container;
 use Mojo::Base -base;
-use List::Util qw(first);
 use Agent::Containers::Conditions;
+use Agent::Containers qw(inspect);
 
 use Mojo::UserAgent;
 use Mojo::IOLoop::ReadWriteFork;
@@ -43,7 +43,7 @@ sub start {
 
     my $container_id = `docker run -c $cpu_shares -d $port_string $link_string -name $container_name $image_name`;
     if ($container_id) {
-        $self->id($self->_get_full_id($container_id));
+        $self->id(_get_full_id $container_id);
         $self->_init();
         return $self->id;
     }
@@ -204,39 +204,9 @@ sub _get_true_pid {
 }
 
 sub _get_full_id {
-    my $self = shift;
-    my $short_id = shift;
-    my $json = Mojo::JSON->new;
-    my $details = `docker inspect $short_id`;
-    $details = $json->decode($details)->[0];
-    return $details->{ID};
+    my $id = shift;
+    my $details = inspect $id;
+    return $details->{ID} // '';
 }
-
-sub is_running {
-    my $self = shift;
-    my $id_prefix = substr $self->id, 0, 12;
-    return first { index($_, $id_prefix) >= 0 } $self->_get_running_containers;
-}
-
-sub _get_running_containers {
-    my $self = shift;
-    my @container_ids = `docker ps | tail -n +2 | awk '{print \$1}'`;
-    return @container_ids;
-}
-
-sub _get_details {
-    my $self = shift;
-    my $json = Mojo::JSON->new;
-    my $container_id = $self->id;
-
-    my $details = `docker inspect $container_id`;
-    $details = $json->decode($details)->[0];
-    my $ip_address = $details->{'NetworkSettings'}->{'IPAddress'};
-    my $lxc_pid = $details->{'State'}->{'Pid'};
-    my $date_started = $details->{'State'}->{'StartedAt'};
-    my $image_id = $details->{'Image'};
-    return ($ip_address, $lxc_pid, $date_started, $image_id);
-}
-
 
 1;
