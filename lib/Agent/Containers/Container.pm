@@ -135,35 +135,25 @@ sub stop {
 
 sub _register {
     my $self = shift;
-    my ($ip_address, $lxc_pid, $date_started, $image_id) = $self->_get_details;
     my $sth = $self->db->prepare("
         INSERT INTO container
         (
             container_id,
-            parent_image_id,
-            ip_address,
-            true_pid,
-            container_pid,
-            date_started
-        ) VALUES (?, ?, ?, ?, ?, ?)");
-    $sth->execute($self->id, $image_id, $ip_address, $self->true_pid, $lxc_pid, $date_started);
+            true_pid
+        ) VALUES (?, ?)");
+    $sth->execute($self->id, $self->true_pid);
 }
 
 sub _update {
     my $self = shift;
-    my ($ip_address, $lxc_pid, $date_started, $image_id) = $self->_get_details;
     my $true_pid = $self->_create_netns;
     my $sth = $self->db->prepare("
         UPDATE container
         SET
-            ip_address = ?,
-            parent_image_id = ?,
             true_pid = ?,
-            container_pid = ?,
-            date_started = ?
         WHERE
             container_id = ?");
-    $sth->execute($ip_address, $image_id, $true_pid, $lxc_pid, $date_started, $self->id);
+    $sth->execute($true_pid, $self->id);
 }
 
 sub _unregister {
