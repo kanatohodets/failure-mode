@@ -3,12 +3,18 @@ use Mojo::Base 'Mojolicious::Controller';
 use Mojo::JSON;
 use Agent::Containers::Container;
 use Data::Dumper qw(Dumper);
+use Agent::Util qw(looks_like_sha1);
 
 sub create_image {
     my $self = shift;
     my $dockerfile = shift;
     my $repository_name = shift;
-    my $image_id = `echo "$dockerfile" | docker build -t $repository_name -`;
+    my $result = `echo "$dockerfile" | docker build -t $repository_name -`;
+    if (looks_like_sha1 $result) {
+        $self->render(json => {image_id => $result, message => "OK"});
+    } else {
+        $self->render(json => {message => "failed to build image: $result"}, status => 400);
+    }
 }
 
 sub start {

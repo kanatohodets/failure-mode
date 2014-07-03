@@ -2,6 +2,7 @@ package Agent::Containers;
 use Mojo::Base 'Mojolicious::Controller';
 use Mojo::JSON;
 use Agent::Containers::Container;
+use Agent::Util qw(looks_like_sha1);
 
 our @EXPORT_OK = qw(inspect);
 
@@ -122,8 +123,7 @@ sub _get_container_object {
 
 sub _paranoid_inspect {
     my $id = shift;
-    my $only_hex_id = $id =~ /^[0-9a-f]*$/;
-    return `docker inspect $id` if $only_hex_id;
+    return `docker inspect $id` if looks_like_sha1 $id;
     return '';
 }
 
