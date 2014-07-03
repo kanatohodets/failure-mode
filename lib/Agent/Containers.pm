@@ -3,6 +3,8 @@ use Mojo::Base 'Mojolicious::Controller';
 use Mojo::JSON;
 use Agent::Containers::Container;
 
+our @EXPORT_OK = qw(inspect);
+
 sub stop {
     my $self = shift;
     my $container_id = $self->stash('id');
@@ -69,13 +71,19 @@ sub remove_conditions {
     }
 }
 
-sub inspect {
+sub get {
     my $self = shift;
     my $json = Mojo::JSON->new;
     my $container_id = $self->stash('id');
-    my $details = $self->_paranoid_inspect($container_id);
-    $details = $json->decode($details);
-    $self->render(json => $details);
+    $self->render(json => get_details $container_id);
+}
+
+sub inspect {
+    my $container_id = shift;
+    my $json = Mojo::JSON->new;
+    my $details = _paranoid_inspect $container_id;
+    $details = $json->decode($details)->[0];
+    return $details;
 }
 
 sub list {
@@ -107,7 +115,7 @@ sub list {
 sub _get_container_object {
     my $self = shift;
     my $container_id = shift;
-    my $output = $self->_paranoid_inspect($id);
+    my $output = _paranoid_inspect $id;
     return '' if $output =~ /No such image or container/ or !$output;
     return Agent::Containers::Container->new($container_id);
 }

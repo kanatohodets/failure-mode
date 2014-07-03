@@ -32,7 +32,7 @@ sub startup {
     # Normal route to controller
 
     $r->get('/containers')->to('containers#list');
-    $r->get('/containers/:id')->to('containers#inspect');
+    $r->get('/containers/:id')->to('containers#get');
 
     #specify a docker image
     $r->post('/containers')->to('images#start');
