@@ -32,5 +32,6 @@ CREATE TABLE IF NOT EXISTS container_condition (
     container_id TEXT NOT NULL,
     condition_type INTEGER NOT NULL,
     condition_id INTEGER NOT NULL,
+    is_active INTEGER NOT NULL CHECK(is_income = 0 OR is_income = 1) DEFAULT 0,
     FOREIGN KEY(container_id) REFERENCES container(container_id)
 );
