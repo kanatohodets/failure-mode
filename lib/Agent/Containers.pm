@@ -1,22 +1,12 @@
 package Agent::Containers;
 use Mojo::Base 'Mojolicious::Controller';
 use Mojo::JSON;
+
 use Agent::Containers::Container;
 use Agent::Util qw(looks_like_sha1);
 
-our @EXPORT_OK = qw(inspect);
 
-sub stop {
-    my $self = shift;
-    my $container_id = $self->stash('id');
-    my $container = $self->_get_container_object($container_id);
-    if ($container) {
-        $container->stop();
-        $self->render(json => {message => "OK"});
-    } else {
-        $self->render(json => {message => "no such container"}, status => 404);
-    }
-}
+our @EXPORT_OK = qw(inspect);
 
 sub add_condition {
     my $self = shift;
@@ -116,7 +106,7 @@ sub list {
 sub _get_container_object {
     my $self = shift;
     my $container_id = shift;
-    my $output = _paranoid_inspect $id;
+    my $output = _paranoid_inspect $container_id;
     return '' if $output =~ /No such image or container/ or !$output;
     return Agent::Containers::Container->new($container_id);
 }

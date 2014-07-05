@@ -30,15 +30,6 @@ However, I'd love to hear from you if you have ideas on how this sort of thing
 could be useful for your needs: feel free to open issues for suggestions or comments.
 
 ##API
-### Images
-
-Adding/listing images
-
-(but just use the docker client for now, this isn't well-fleshed out yet)
-
-    POST /images/
-    GET /images
-
 ### Containers
 Note: any `<container id>` may be shortened to anything unambiguous, just like
 when using the docker client.
@@ -50,25 +41,6 @@ See running containers:
 See `docker inspect` for a given container:
 
     GET /containers/<container id>
-
-Start a new container:
-
-    POST /containers
-    curl -H "Content-Type: application/json" -X POST -d ' 
-    {
-        "image": "foobar/appserver", 
-        "name": "app01", 
-        "cpu_shares": "1000", 
-        "link_source_name": "redis", 
-        "link_local_name": "redis", 
-        "port_to_forward": "4005"
-    }' http://localhost:3005/containers
-    #response: 
-    {"container_id":"2c9054050a7c3b34b0fa5dc6f35785b1180f18fa78ccf560bfc9f959c711717f","message":"OK"}
-
-Stop a container:
-
-    DELETE /containers/<container id>
 
 ### Conditions
 See the list of currently-applied conditions for a given container:

@@ -1,10 +1,8 @@
 package Agent::Containers::Container;
 use Mojo::Base -base;
 use Agent::Containers::Conditions;
-use Agent::Containers qw(inspect);
 
 use Mojo::UserAgent;
-use Mojo::IOLoop::ReadWriteFork;
 
 has namespace_path => '/sys/fs/cgroup/devices/lxc';
 has id => undef;
@@ -21,33 +19,8 @@ sub new {
     $self->conditions($conditions);
     # host may have restarted or something, need to make sure the ip and true
     # pid are still correct
-    $self->_update if $self->true_pid;
+    $self->_init;
     return $self;
-}
-
-sub start {
-    my $self = shift;
-    my $image_name = shift;
-    my $container_name = shift;
-    my $cpu_shares = shift // 1000;
-    my $link_source_name = shift // '';
-    my $link_local_name = shift // '';
-    my $port_to_forward = shift // '';
-    my $port_string = '';
-    $port_string = "-p $port_to_forward:$port_to_forward" if $port_to_forward;
-    say $port_string;
-
-    my $link_string = '';
-    $link_string = "-link $link_source_name:$link_local_name" if $link_source_name && $link_local_name;
-    say $link_string;
-
-    my $container_id = `docker run -c $cpu_shares -d $port_string $link_string -name $container_name $image_name`;
-    if ($container_id) {
-        $self->id(_get_full_id $container_id);
-        $self->_init();
-        return $self->id;
-    }
-    return;
 }
 
 sub list_conditions {
@@ -124,15 +97,6 @@ sub _init {
     #say "finished ua websocket thingy";
 }
 
-sub stop {
-    my $self = shift;
-    my $container_id = $self->id;
-    Mojo::IOLoop->remove($self->stream_id) if $self->stream_id;
-    system("docker stop $container_id");
-    system("docker rm $container_id");
-    $self->_unregister();
-}
-
 sub _register {
     my $self = shift;
     my $sth = $self->db->prepare("
@@ -199,6 +163,7 @@ sub _get_true_pid {
 
 sub _get_full_id {
     my $id = shift;
+    warn "get full id!";
     my $details = inspect $id;
     return $details->{ID} // '';
 }
