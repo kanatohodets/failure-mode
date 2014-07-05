@@ -2,14 +2,15 @@ package Agent::Containers;
 use Mojo::Base 'Mojolicious::Controller';
 use Mojo::JSON;
 
+use experimental qw(postderef signatures);
 use Agent::Containers::Container;
 use Agent::Util qw(looks_like_sha1);
 
+## no critic ProhibitSubroutinePrototypes
 
 our @EXPORT_OK = qw(inspect);
 
-sub add_condition {
-    my $self = shift;
+sub add_condition ($self) {
     my $json = Mojo::JSON->new;
     my $container_id = $self->stash('id');
     my $type = $self->stash('type');
@@ -24,8 +25,7 @@ sub add_condition {
     }
 }
 
-sub list_conditions {
-    my $self = shift;
+sub list_conditions ($self) {
     my $container_id = $self->stash('id');
     my $container = $self->_get_container_object($container_id);
     if ($container) {
@@ -36,8 +36,7 @@ sub list_conditions {
     }
 }
 
-sub remove_condition {
-    my $self = shift;
+sub remove_condition ($self) {
     my $container_id = $self->stash('id');
     my $type = $self->stash('type');
     my $subtype = $self->stash('subtype');
@@ -50,8 +49,7 @@ sub remove_condition {
     }
 }
 
-sub remove_conditions {
-    my $self = shift;
+sub remove_conditions ($self) {
     my $container_id = $self->stash('id');
     my $container = $self->_get_container_object($container_id);
     if ($container) {
@@ -62,23 +60,20 @@ sub remove_conditions {
     }
 }
 
-sub get {
-    my $self = shift;
-    my $json = Mojo::JSON->new;
-    my $container_id = $self->stash('id');
-    $self->render(json => get_details $container_id);
-}
-
-sub inspect {
-    my $container_id = shift;
+sub inspect ($container_id) {
     my $json = Mojo::JSON->new;
     my $details = _paranoid_inspect $container_id;
     $details = $json->decode($details)->[0];
     return $details;
 }
 
-sub list {
-    my $self = shift;
+sub get ($self) {
+    my $json = Mojo::JSON->new;
+    my $container_id = $self->stash('id');
+    $self->render(json => inspect $container_id);
+}
+
+sub list ($self) {
     my @raw_containers = `docker ps | tail -n +2`;
     my $containers = [];
     foreach my $container (@raw_containers) {
@@ -89,7 +84,7 @@ sub list {
         $container =~ s/[\W]+$//;
         my ($id, $image, $command, $created, $status, $ports, $names) = split "-", $container;
 
-        push $containers, {
+        push $containers->@*, {
             id => $id,
             image => $image,
             command => $command,
@@ -103,17 +98,14 @@ sub list {
     $self->render(json => $containers);
 }
 
-sub _get_container_object {
-    my $self = shift;
-    my $container_id = shift;
+sub _get_container_object ($self, $container_id) {
     my $output = _paranoid_inspect $container_id;
     return '' if $output =~ /No such image or container/ or !$output;
     return Agent::Containers::Container->new($container_id);
 }
 
-sub _paranoid_inspect {
-    my $id = shift;
-    return `docker inspect $id` if looks_like_sha1 $id;
+sub _paranoid_inspect ($container_id) {
+    return `docker inspect $container_id` if looks_like_sha1 $container_id;
     return '';
 }
 

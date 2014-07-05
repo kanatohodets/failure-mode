@@ -2,6 +2,8 @@ package Agent::Containers::Conditions;
 use Mojo::Base -base;
 use DatabaseConnection;
 use Data::Dumper qw(Dumper);
+use experimental qw(postderef signatures);
+## no critic ProhibitSubroutinePrototypes
 
 use Agent::Containers::Conditions::Net::Drop;
 use Agent::Containers::Conditions::Net::Delay;
@@ -50,7 +52,7 @@ sub new {
 sub _load_conditions {
     my $self = shift;
     my $hashref = shift;
-    foreach my $condition_id (keys $hashref) {
+    foreach my $condition_id (keys $hashref->%*) {
         my ($condition_type, $condition_id) = @{$hashref->{$condition_id}}{qw(condition_type condition_id)};
         my ($type, $subtype) = @{$self->condition_names->{$condition_type}};
         my $condition = $self->get_condition($type, $subtype, undef, $condition_id);
@@ -236,6 +238,5 @@ sub _enable_mem { }
 sub _disable_disk { }
 sub _disable_cpu { }
 sub _disable_mem { }
-
 
 1;
