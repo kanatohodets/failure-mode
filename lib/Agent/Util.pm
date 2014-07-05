@@ -1,5 +1,6 @@
 package Agent::Util;
 use Mojo::Base;
+use Exporter qw(import);
 
 our @EXPORT_OK = qw(looks_like_sha1);
 
