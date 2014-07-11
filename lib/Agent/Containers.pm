@@ -1,6 +1,7 @@
 package Agent::Containers;
 use Mojo::Base 'Mojolicious::Controller';
 use Mojo::JSON;
+use Mojo::UserAgent::UnixSocket;
 
 use experimental qw(postderef signatures);
 use Agent::Containers::Container;
@@ -9,6 +10,10 @@ use Agent::Util qw(looks_like_sha1);
 ## no critic ProhibitSubroutinePrototypes
 
 our @EXPORT_OK = qw(inspect);
+
+my $docker_api_root = 'unix:///var/run/docker.sock';
+
+has ua => sub { state $ua = Mojo::UserAgent::UnixSocket->new };
 
 sub add_condition ($self) {
     my $json = Mojo::JSON->new;
@@ -60,52 +65,45 @@ sub remove_conditions ($self) {
     }
 }
 
-sub inspect ($container_id) {
-    my $json = Mojo::JSON->new;
-    my $details = _paranoid_inspect $container_id;
-    $details = $json->decode($details)->[0];
-    return $details;
+sub inspect ($self, $container_id) {
+    return '' if not looks_like_sha1 $container_id;
+    my $res = $self->_docker_api("/containers/$container_id/json");
+    return '' if !$res or $res->code eq '404';
+    return $res->json;
 }
 
 sub get ($self) {
     my $json = Mojo::JSON->new;
     my $container_id = $self->stash('id');
-    $self->render(json => inspect $container_id);
+    my $container = $self->inspect($container_id);
+    if ($container) {
+        $self->render(json => $container);
+    } else {
+        $self->render_not_found;
+    }
 }
 
 sub list ($self) {
-    my @raw_containers = `docker ps | tail -n +2`;
-    my $containers = [];
-    foreach my $container (@raw_containers) {
-        chomp($container);
-        # turn the goofy space-separated field into - delimited.
-        $container =~ s/(\w)[\W]{2,}(\w)/$1-$2/g;
-        # and trim the end whitespace
-        $container =~ s/[\W]+$//;
-        my ($id, $image, $command, $created, $status, $ports, $names) = split "-", $container;
-
-        push $containers->@*, {
-            id => $id,
-            image => $image,
-            command => $command,
-            created => $created,
-            status => $status,
-            ports => $ports,
-            names => $names
-        };
+    my $res = $self->_docker_api('/containers/json');
+    if ($res) {
+        $self->render(json => $res->json);
+    } else {
+        $self->render_exception("Bad response from docker API");
     }
-
-    $self->render(json => $containers);
 }
 
 sub _get_container_object ($self, $container_id) {
-    my $output = _paranoid_inspect $container_id;
-    return '' if $output =~ /No such image or container/ or !$output;
+    my $output = $self->inspect($container_id);
+    return '' if !$output;
     return Agent::Containers::Container->new($container_id);
 }
 
-sub _paranoid_inspect ($container_id) {
-    return `docker inspect $container_id` if looks_like_sha1 $container_id;
+sub _docker_api($self, $route) {
+    my $tx = $self->ua->get("$docker_api_root/$route");
+    if ($tx->res->code) {
+        warn "internal docker error: $tx->res->json" and return '' if $tx->res->code eq '500';
+        return $tx->res;
+    }
     return '';
 }
 

@@ -121,8 +121,9 @@ On the host where you plan to conduct the burn testing:
 
 1. install docker
 2. install mojolicious: `curl get.mojolicio.us | sh` or `cpanm Mojolicious` -- libmojolicious in ubuntu is way old!
-3. clone failure mode: `git clone github.com/kanatohodets/failure-mode`
-4. run failure mode as root using hypnotoad. by default it runs on 3005: `sudo hypnotoad scripts/agent`
+3. install Mojo::UserAgent::UnixSocket (used to talk to the Docker API): `cpanm Mojo::UserAgent::UnixSocket`
+4. clone failure mode: `git clone github.com/kanatohodets/failure-mode`
+5. run failure mode as root using hypnotoad. by default it runs on 3005: `sudo hypnotoad scripts/agent`
 
 ##### about running as root
 This is one of the sharp edges mentioned earlier. Failure Mode needs to be able
